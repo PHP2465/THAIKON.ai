@@ -1,0 +1,36 @@
+const handleTrain = async () => {
+  if (!user || !file) return;
+
+  setProcessing(true);
+
+  // Upload ไฟล์เสียง
+  const filename = `${user.id}/train/${Date.now()}_${file.name}`;
+  const { error: uploadError } = await supabase.storage
+    .from("user-audio")
+    .upload(filename, file);
+  if (uploadError) return alert("❌ Upload failed");
+
+  const fileUrl = supabase.storage.from("user-audio").getPublicUrl(filename).data.publicUrl;
+
+  // สร้าง voice_model entry
+  const { data: modelData, error: modelError } = await supabase.from("voice_models").insert({
+    user_id: user.id,
+    name: `โมเดลใหม่ (${Date.now()})`,
+    category: "อีสาน",
+    model_url: "",
+  }).select().single();
+
+  // เรียก API เพื่อเทรน
+  const response = await fetch("/api/trainHandler.js", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      user_id: user.id,
+      voice_model_id: modelData.id,
+      file_url: fileUrl,
+    }),
+  });
+
+  setProcessing(false);
+  setDone(true);
+};

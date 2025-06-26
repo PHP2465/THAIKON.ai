@@ -1,0 +1,66 @@
+import React, { useState } from "react";
+import { supabase } from "./supabaseClient";
+import { useAuth } from "./AuthContext";
+
+export default function Studio() {
+  const { user } = useAuth();
+  const [file, setFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  const handleUpload = async () => {
+    if (!file || !user) return;
+
+    setUploading(true);
+    const filename = `${user.id}/${Date.now()}_${file.name}`;
+
+    // 1. Upload to Supabase Storage
+    const { error: uploadError } = await supabase.storage
+      .from("user-audio")
+      .upload(filename, file);
+
+    if (uploadError) {
+      alert("❌ Upload failed");
+      setUploading(false);
+      return;
+    }
+
+    const fileUrl = supabase.storage.from("user-audio").getPublicUrl(filename).data.publicUrl;
+
+    // 2. Insert to audio_history table
+    const { error: dbError } = await supabase.from("audio_history").insert({
+      user_id: user.id,
+      file_url: fileUrl,
+      action_type: "upload",
+    });
+
+    if (dbError) {
+      alert("❌ DB Insert failed");
+    } else {
+      setSuccess(true);
+    }
+
+    setUploading(false);
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-950 text-white p-10">
+      <h1 className="text-3xl font-bold text-yellow-400 mb-6">🎛️ Studio</h1>
+      <input
+        type="file"
+        accept="audio/*"
+        onChange={(e) => setFile(e.target.files[0])}
+        className="bg-gray-800 p-3 rounded mb-4 w-full"
+      />
+      <button
+        onClick={handleUpload}
+        className="bg-yellow-400 text-black px-6 py-2 rounded hover:bg-yellow-300"
+        disabled={uploading}
+      >
+        {uploading ? "Uploading..." : "อัปโหลดไฟล์เสียง"}
+      </button>
+
+      {success && <p className="text-green-400 mt-4">✅ อัปโหลดสำเร็จ!</p>}
+    </div>
+  );
+}

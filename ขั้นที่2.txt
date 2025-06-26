@@ -1,0 +1,6 @@
+ขั้นที่ 2: เชื่อม Stripe Checkout (ฝั่ง Frontend)
+หน้า /pricing → ปุ่ม “Subscribe”
+
+เมื่อคลิก → เรียก API /api/create-checkout-session
+
+Redirect ไปยัง Stripe Checkout page

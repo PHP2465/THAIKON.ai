@@ -1,0 +1,85 @@
+import React, { useState, useEffect } from "react";
+import { supabase } from "./supabaseClient";
+import { useAuth } from "./AuthContext";
+
+export default function GenerateVoice() {
+  const { user } = useAuth();
+  const [models, setModels] = useState([]);
+  const [selectedModel, setSelectedModel] = useState("");
+  const [text, setText] = useState("");
+  const [audioUrl, setAudioUrl] = useState("");
+
+  useEffect(() => {
+    const fetchModels = async () => {
+      const { data, error } = await supabase
+        .from("voice_models")
+        .select("*")
+        .eq("user_id", user.id)
+        .neq("model_url", "");
+      if (!error) setModels(data);
+    };
+
+    if (user) fetchModels();
+  }, [user]);
+
+  const handleGenerate = async () => {
+    if (!selectedModel || !text) return alert("กรุณาเลือกโมเดลและกรอกข้อความ");
+
+    // mock call API generate
+    const response = await fetch("/api/generateVoice", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model_id: selectedModel, text }),
+    });
+    const data = await response.json();
+    setAudioUrl(data.audio_url);
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-950 text-white p-8">
+      <h1 className="text-3xl font-bold text-yellow-400 mb-6">🎤 Generate Voice</h1>
+
+      <div className="space-y-4">
+        <select
+          className="w-full bg-gray-800 text-white p-3 rounded"
+          onChange={(e) => setSelectedModel(e.target.value)}
+        >
+          <option value="">-- เลือกโมเดลเสียง --</option>
+          {models.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.name}
+            </option>
+          ))}
+        </select>
+
+        <textarea
+          className="w-full bg-gray-800 text-white p-3 rounded h-32"
+          placeholder="พิมพ์ข้อความที่ต้องการให้พูด..."
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+        />
+
+        <button
+          onClick={handleGenerate}
+          className="bg-yellow-400 text-black px-6 py-2 rounded hover:bg-yellow-300"
+        >
+          🔊 Generate
+        </button>
+
+        {audioUrl && (
+          <div className="mt-6">
+            <p className="mb-2">✅ เสียงที่สร้างได้:</p>
+            <audio controls src={audioUrl} className="w-full" />
+            <a
+              href={audioUrl}
+              download
+              className="text-blue-400 underline text-sm mt-2 inline-block"
+            >
+              ⬇ ดาวน์โหลดไฟล์เสียง
+            </a>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

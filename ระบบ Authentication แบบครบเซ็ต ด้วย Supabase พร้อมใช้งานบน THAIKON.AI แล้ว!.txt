@@ -1,0 +1,106 @@
+// THAIKON.AI – Supabase Authentication System
+// Stack: React + Supabase JS SDK
+
+// 1. supabaseClient.js
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+
+// 2. AuthContext.js
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { supabase } from './supabaseClient';
+
+const AuthContext = createContext();
+
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const session = supabase.auth.getSession().then(({ data }) => {
+      setUser(data?.session?.user || null);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+    });
+
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
+  return <AuthContext.Provider value={{ user }}>{children}</AuthContext.Provider>;
+};
+
+export const useAuth = () => useContext(AuthContext);
+
+
+// 3. LoginPage.jsx
+import React, { useState } from 'react';
+import { supabase } from './supabaseClient';
+import { useNavigate } from 'react-router-dom';
+
+export default function LoginPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
+
+  const handleLogin = async () => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) setError(error.message);
+    else navigate('/dashboard');
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center">
+      <h1 className="text-2xl mb-6 font-bold">Login to THAIKON.AI</h1>
+      <input className="mb-2 p-2 w-64" type="email" placeholder="Email" onChange={e => setEmail(e.target.value)} />
+      <input className="mb-4 p-2 w-64" type="password" placeholder="Password" onChange={e => setPassword(e.target.value)} />
+      <button className="bg-yellow-400 text-black px-4 py-2 rounded" onClick={handleLogin}>Login</button>
+      {error && <p className="text-red-500 mt-2">{error}</p>}
+    </div>
+  );
+}
+
+
+// 4. RegisterPage.jsx
+import React, { useState } from 'react';
+import { supabase } from './supabaseClient';
+import { useNavigate } from 'react-router-dom';
+
+export default function RegisterPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
+
+  const handleRegister = async () => {
+    const { error } = await supabase.auth.signUp({ email, password });
+    if (error) setError(error.message);
+    else navigate('/dashboard');
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center">
+      <h1 className="text-2xl mb-6 font-bold">Register for THAIKON.AI</h1>
+      <input className="mb-2 p-2 w-64" type="email" placeholder="Email" onChange={e => setEmail(e.target.value)} />
+      <input className="mb-4 p-2 w-64" type="password" placeholder="Password" onChange={e => setPassword(e.target.value)} />
+      <button className="bg-yellow-400 text-black px-4 py-2 rounded" onClick={handleRegister}>Register</button>
+      {error && <p className="text-red-500 mt-2">{error}</p>}
+    </div>
+  );
+}
+
+
+// 5. ProtectedRoute.jsx
+import React from 'react';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from './AuthContext';
+
+export default function ProtectedRoute({ children }) {
+  const { user } = useAuth();
+  return user ? children : <Navigate to="/login" />;
+}

@@ -1,0 +1,8 @@
+ ภาพรวมการเชื่อม AI Model จริง
+ฝั่ง Backend ต้องมี API ที่รับข้อความ + โมเดล แล้วส่งไปประมวลผลกับโมเดล AI (เช่น Python server ที่รัน PyTorch  TensorFlow)
+
+ได้ไฟล์เสียง (wavmp3) กลับมา
+
+บันทึกไฟล์เสียงลง Storage (Supabase Storage หรือ S3)
+
+ส่ง URL ไฟล์เสียงกลับ Frontend เพื่อให้ผู้ใช้ฟังและดาวน์โหลด

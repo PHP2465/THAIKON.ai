@@ -1,0 +1,152 @@
+// THAIKON.Ai Prototype – Harmony Tool Page (แยกเสียง / สร้างเสียงประสาน)
+// Stack: React + TailwindCSS
+
+import React, { useState, useEffect } from "react";
+import { supabase } from "../utils/supabaseClient";
+
+export default function HarmonyTool() {
+  const [file, setFile] = useState(null);
+  const [processing, setProcessing] = useState(false);
+  const [done, setDone] = useState(false);
+  const [credits, setCredits] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    async function fetchCredits() {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) {
+        setError("ไม่สามารถโหลดข้อมูลผู้ใช้ได้");
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("user_plans")
+        .select("credits_remaining")
+        .eq("user_id", user.id)
+        .single();
+
+      if (error) {
+        setError("ไม่สามารถโหลดเครดิตได้");
+        return;
+      }
+
+      setCredits(data.credits_remaining);
+    }
+
+    fetchCredits();
+  }, []);
+
+  const handleProcess = async () => {
+    if (!file || credits <= 0) return;
+    setProcessing(true);
+
+    const { error } = await supabase.rpc("deduct_credit");
+    if (error) {
+      setProcessing(false);
+      setError("ไม่สามารถตัดเครดิตได้");
+      return;
+    }
+
+    setTimeout(() => {
+      setProcessing(false);
+      setDone(true);
+      setCredits((prev) => prev - 1);
+    }, 3000); // mock processing time
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-950 text-white p-6">
+      <header className="flex items-center justify-between mb-10">
+        <h1 className="text-3xl font-bold text-yellow-400">Harmony Tool</h1>
+        <button className="bg-yellow-400 text-black px-6 py-2 rounded-full hover:bg-yellow-300">
+          กลับแดชบอร์ด
+        </button>
+      </header>
+
+      {error && <p className="text-red-400 mb-4">❌ {error}</p>}
+
+      <section className="bg-gray-800 p-6 rounded-xl mb-8">
+        <h2 className="text-xl font-semibold mb-4">อัปโหลดเพลงเพื่อแยกเสียงร้องและเครื่องดนตรี</h2>
+        <p className="mb-2 text-sm text-yellow-300">เครดิตคงเหลือ: {credits !== null ? credits : "..."}</p>
+        <input
+          type="file"
+          accept="audio/*"
+          onChange={(e) => setFile(e.target.files[0])}
+          className="w-full p-3 bg-gray-900 rounded mb-4"
+        />
+        <button
+          className="bg-yellow-400 text-black px-6 py-2 rounded hover:bg-yellow-300 disabled:opacity-40"
+          onClick={handleProcess}
+          disabled={!file || processing || credits <= 0}
+        >
+          {processing ? "กำลังประมวลผล..." : "แยกเสียง / สร้าง Harmony"}
+        </button>
+        {done && (
+          <p className="text-green-400 mt-4">
+            ✅ เสร็จเรียบร้อย! คุณสามารถดาวน์โหลดเสียงร้องและเสียงดนตรีแยกได้แล้ว
+          </p>
+        )}
+        {credits === 0 && (
+          <p className="text-red-300 mt-2">⚠️ เครดิตหมด กรุณาเติมเครดิตเพื่อใช้งานต่อ</p>
+        )}
+      </section>
+
+      <section className="bg-gray-800 p-6 rounded-xl">
+        <h2 className="text-xl font-semibold mb-4">เอฟเฟกต์เสียงเพิ่มเติม (Experimental)</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {["Remove Echo", "Enhance Vocal", "Speed Remix", "Pitch Shift"].map((fx, i) => (
+            <button
+              key={i}
+              className="bg-gray-700 hover:bg-yellow-400 hover:text-black p-4 rounded shadow"
+            >
+              {fx}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="bg-gray-900 mt-10 p-6 rounded-xl">
+        <h2 className="text-xl font-bold text-yellow-400 mb-4">แพ็กเกจการใช้งาน</h2>
+        <div className="grid md:grid-cols-3 gap-6">
+          {[{ name: "เริ่มต้น", price: 0, credits: 3 }, { name: "โปร", price: 199, credits: 30 }, { name: "โปร+", price: 499, credits: 100 }].map((plan, i) => (
+            <div key={i} className="bg-gray-800 p-6 rounded-xl border border-gray-700">
+              <h3 className="text-lg font-semibold text-white mb-2">{plan.name}</h3>
+              <p className="text-yellow-400">{plan.credits} เครดิต</p>
+              <p className="text-sm text-gray-400 mb-4">ราคา {plan.price === 0 ? "ฟรี" : `${plan.price} บาท`}</p>
+              <button className="bg-yellow-400 text-black px-4 py-2 rounded hover:bg-yellow-300">
+                {plan.price === 0 ? "ใช้งานเลย" : "ซื้อแพ็กเกจ"}
+              </button>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+// ✅ Database Schema: แพ็กเกจเสียง (Supabase Tables)
+/*
+  TABLE: plans
+  - id (uuid, primary key)
+  - name (text)
+  - price (integer)
+  - credits (integer)
+  - model_limit (integer)
+  - is_active (boolean)
+
+  TABLE: user_plans
+  - id (uuid, primary key)
+  - user_id (uuid, references auth.users)
+  - plan_id (uuid, references plans)
+  - credits_remaining (integer)
+  - created_at (timestamp)
+  - expires_at (timestamp)
+
+  TABLE: payments
+  - id (uuid, primary key)
+  - user_id (uuid)
+  - amount (integer)
+  - status (text)
+  - method (text)
+  - created_at (timestamp)
+*/

@@ -1,0 +1,10 @@
+/thaikon-ai/
+ ├── public/                ← ไฟล์ static เช่นโลโก้, index.html
+ ├── src/                   ← โค้ดทั้งหมด (รวมทุกหน้า)
+ │    ├── App.jsx
+ │    ├── Dashboard.jsx
+ │    ├── ...
+ ├── package.json           ← รายการ dependency
+ ├── tailwind.config.js     ← สำหรับ Tailwind
+ ├── vite.config.js / etc.  ← ถ้าใช้ Vite/Next
+ └── README.md              ← บรรยายโปรเจกต์

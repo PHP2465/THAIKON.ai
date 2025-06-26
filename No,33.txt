@@ -1,0 +1,39 @@
+1. สร้าง API สำหรับเริ่มเทรนเสียง (ไฟล์ใหม่: trainHandler.js)
+
+
+// /api/trainHandler.js (mock API logic)
+import { supabase } from "../supabaseClient";
+
+export default async function handler(req, res) {
+  if (req.method !== "POST") return res.status(405).end();
+
+  const { user_id, voice_model_id, file_url } = req.body;
+
+  // Step 1: Insert training session
+  const { data: session, error } = await supabase.from("training_sessions").insert({
+    user_id,
+    voice_model_id,
+    status: "pending",
+  }).select().single();
+
+  if (error) return res.status(500).json({ error });
+
+  // Step 2: Simulate backend worker
+  setTimeout(async () => {
+    // Fake: model trained and uploaded
+    const mockModelURL = `https://example.com/models/${session.id}.pth`;
+
+    // Update voice_models
+    await supabase.from("voice_models").update({
+      model_url: mockModelURL
+    }).eq("id", voice_model_id);
+
+    // Update training session
+    await supabase.from("training_sessions").update({
+      status: "completed",
+      completed_at: new Date()
+    }).eq("id", session.id);
+  }, 5000); // mock 5s delay
+
+  return res.status(200).json({ message: "Training started", session_id: session.id });
+}

@@ -1,0 +1,63 @@
+import React, { useState } from "react";
+
+export default function StudioPage() {
+  const [file, setFile] = useState(null);
+  const [userId] = useState("uuid-user-001"); // จำลอง user_id จริง ๆ ดึงจาก auth
+  const [loading, setLoading] = useState(false);
+  const [resultUrl, setResultUrl] = useState("");
+
+  const handleTrain = async () => {
+    if (!file) return alert("กรุณาเลือกไฟล์เสียงก่อน");
+
+    setLoading(true);
+
+    // สมมติอัปโหลดไฟล์ขึ้น Supabase Storage แล้วได้ filename
+    // ในจริงต้องทำระบบอัปโหลดไฟล์ก่อน (ยังไม่รวมในนี้)
+    const filename = file.name;
+
+    try {
+      const res = await fetch("http://localhost:8080/train", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename, user_id: userId }),
+      });
+      const data = await res.json();
+      if (data.status === "success") {
+        setResultUrl(data.file_url);
+      } else {
+        alert("เกิดข้อผิดพลาด: " + JSON.stringify(data));
+      }
+    } catch (error) {
+      alert("เกิดข้อผิดพลาด: " + error.message);
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">Studio - Train Voice Model</h1>
+      <input
+        type="file"
+        accept="audio/*"
+        onChange={(e) => setFile(e.target.files[0])}
+        className="mb-4"
+      />
+      <button
+        onClick={handleTrain}
+        disabled={loading || !file}
+        className="px-4 py-2 bg-yellow-400 rounded hover:bg-yellow-300 disabled:opacity-50"
+      >
+        {loading ? "กำลังเทรนเสียง..." : "เทรนเสียง"}
+      </button>
+
+      {resultUrl && (
+        <div className="mt-4 text-green-600">
+          เสร็จแล้ว! ดาวน์โหลดได้ที่:{" "}
+          <a href={resultUrl} target="_blank" rel="noopener noreferrer" className="underline">
+            {resultUrl}
+          </a>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -1,0 +1,139 @@
+// THAIKON.Ai Prototype – Training Monitor + Training Workflow จริง
+// Stack: React + TailwindCSS + Supabase + FastAPI
+
+import React, { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
+
+export function TrainingMonitor() {
+  const [sessions, setSessions] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchSessions = async () => {
+      setLoading(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      const user_id = session?.user?.id;
+
+      const { data, error } = await supabase
+        .from("training_sessions")
+        .select("id, status, created_at")
+        .eq("user_id", user_id)
+        .order("created_at", { ascending: false });
+
+      if (!error) {
+        setSessions(data);
+      }
+      setLoading(false);
+    };
+
+    fetchSessions();
+    const interval = setInterval(fetchSessions, 5000); // Refresh ทุก 5 วิ
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-gray-950 text-white p-6">
+      <h1 className="text-3xl font-bold text-yellow-400 mb-6">Training Monitor</h1>
+      <p className="mb-4">สถานะการเทรนเสียงของคุณ (อัปเดตอัตโนมัติทุก 5 วินาที)</p>
+
+      {loading ? (
+        <p className="text-gray-400">⏳ กำลังโหลด...</p>
+      ) : (
+        <ul className="space-y-3">
+          {sessions.map((s) => (
+            <li
+              key={s.id}
+              className={`p-4 rounded-xl bg-gray-800 border-l-4 ${
+                s.status === "done"
+                  ? "border-green-400"
+                  : s.status === "processing"
+                  ? "border-yellow-400"
+                  : "border-gray-500"
+              }`}
+            >
+              <p className="text-sm text-gray-400">Session ID: {s.id}</p>
+              <p className="font-semibold text-lg">สถานะ: {s.status}</p>
+              <p className="text-sm text-gray-500">สร้างเมื่อ: {new Date(s.created_at).toLocaleString()}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+export function TrainVoiceModel() {
+  const [uploadId, setUploadId] = useState("");
+  const [status, setStatus] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const startTraining = async () => {
+    setIsLoading(true);
+    setStatus("กำลังเริ่มการเทรน...");
+
+    const { data: { session } } = await supabase.auth.getSession();
+    const user_id = session?.user?.id;
+
+    // Get latest uploaded file
+    const { data: latestFile } = await supabase
+      .from("voice_uploads")
+      .select("*")
+      .eq("user_id", user_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (!latestFile) {
+      setStatus("❌ ไม่พบไฟล์ที่อัปโหลด");
+      setIsLoading(false);
+      return;
+    }
+
+    // บันทึก session ใหม่
+    const { data: trainData, error } = await supabase
+      .from("training_sessions")
+      .insert([{ user_id, upload_id: latestFile.id, status: "pending" }])
+      .select()
+      .single();
+
+    if (error) {
+      setStatus("❌ สร้าง session ไม่สำเร็จ");
+      setIsLoading(false);
+      return;
+    }
+
+    setUploadId(trainData.id);
+
+    // เรียก API ไปยัง AI Server เพื่อเริ่มเทรนจริง
+    const response = await fetch("https://api.thaikon.ai/train", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: trainData.id, file_url: latestFile.file_url })
+    });
+
+    if (!response.ok) {
+      setStatus("❌ เรียก API ล้มเหลว");
+      setIsLoading(false);
+      return;
+    }
+
+    setStatus("✅ เริ่มการเทรนแล้ว! กำลังดำเนินการบนเซิร์ฟเวอร์ AI");
+    setIsLoading(false);
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-950 text-white p-6">
+      <h1 className="text-3xl font-bold text-yellow-400 mb-6">Training Voice Model</h1>
+      <p className="mb-4">ระบบจะเทรนเสียงของคุณโดยใช้ AI จริง และแสดงสถานะการทำงาน</p>
+      <button
+        onClick={startTraining}
+        className="bg-yellow-400 text-black px-6 py-2 rounded hover:bg-yellow-300 disabled:opacity-50"
+        disabled={isLoading}
+      >
+        {isLoading ? "กำลังประมวลผล..." : "เริ่มเทรนเสียง"}
+      </button>
+
+      {status && <p className="mt-6 text-green-400">{status}</p>}
+    </div>
+  );
+}

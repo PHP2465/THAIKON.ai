@@ -1,0 +1,15 @@
+/src
+ ├── App.jsx                   ← รวม Routing ทุกหน้า
+ ├── LandingPage.jsx           ← หน้าแรก
+ ├── LoginPage.jsx             ← ล็อกอิน
+ ├── RegisterPage.jsx          ← สมัครสมาชิก
+ ├── Dashboard.jsx
+ ├── Studio.jsx
+ ├── HarmonyTool.jsx
+ ├── VoiceClone.jsx
+ ├── VoiceDesigner.jsx
+ ├── GenerateVoice.jsx
+ ├── VoiceHistory.jsx
+ ├── TrainingMonitor.jsx
+ ├── AuthContext.jsx
+ └── ProtectedRoute.jsx

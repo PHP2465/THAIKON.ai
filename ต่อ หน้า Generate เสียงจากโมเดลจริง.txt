@@ -1,0 +1,138 @@
+// THAIKON.Ai Prototype – Generate Voice Page
+// Stack: React + TailwindCSS + Supabase
+
+import React, { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabaseClient";
+
+export default function GenerateVoice() {
+  const [models, setModels] = useState([]);
+  const [selectedModel, setSelectedModel] = useState("");
+  const [text, setText] = useState("");
+  const [status, setStatus] = useState("");
+  const [audioUrl, setAudioUrl] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [sessionId, setSessionId] = useState(null);
+
+  useEffect(() => {
+    // โหลดโมเดลเสียงของผู้ใช้จาก DB
+    const fetchModels = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const user_id = session?.user?.id;
+      if (!user_id) return;
+
+      const { data, error } = await supabase
+        .from("voice_models")
+        .select("id, name")
+        .eq("user_id", user_id);
+
+      if (!error) {
+        setModels(data);
+        if (data.length > 0) setSelectedModel(data[0].id);
+      }
+    };
+    fetchModels();
+  }, []);
+
+  const handleGenerate = async () => {
+    if (!text || !selectedModel) return;
+    setIsLoading(true);
+    setStatus("กำลังสร้างเสียงจากโมเดล...");
+    setAudioUrl("");
+    setSessionId(null);
+
+    // เรียก API Generate
+    const response = await fetch("https://api.thaikon.ai/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model_id: selectedModel, text }),
+    });
+
+    if (!response.ok) {
+      setStatus("❌ เกิดข้อผิดพลาดในการสร้างเสียง");
+      setIsLoading(false);
+      return;
+    }
+
+    const result = await response.json();
+    setSessionId(result.session_id);
+    setStatus("กำลังรอเสียงสร้างเสร็จ...");
+
+    // เช็คสถานะและรอไฟล์เสียง
+    const checkStatus = async () => {
+      const res = await fetch(`https://api.thaikon.ai/generate/status/${result.session_id}`);
+      if (!res.ok) {
+        setStatus("❌ ไม่สามารถตรวจสอบสถานะได้");
+        setIsLoading(false);
+        return;
+      }
+      const data = await res.json();
+
+      if (data.status === "done") {
+        setStatus("✅ สร้างเสียงเสร็จแล้ว!");
+        setAudioUrl(data.file_url);
+        setIsLoading(false);
+      } else if (data.status === "processing") {
+        setStatus("กำลังประมวลผล...");
+        setTimeout(checkStatus, 3000);
+      } else {
+        setStatus(`สถานะ: ${data.status}`);
+        setTimeout(checkStatus, 3000);
+      }
+    };
+    checkStatus();
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-950 text-white p-6">
+      <h1 className="text-3xl font-bold text-yellow-400 mb-6">Generate Voice from Model</h1>
+
+      <label className="block mb-2 font-semibold">เลือกโมเดลเสียง</label>
+      <select
+        className="w-full p-3 mb-4 rounded bg-gray-800"
+        value={selectedModel}
+        onChange={(e) => setSelectedModel(e.target.value)}
+      >
+        {models.map((model) => (
+          <option key={model.id} value={model.id}>{model.name}</option>
+        ))}
+      </select>
+
+      <label className="block mb-2 font-semibold">ข้อความที่ต้องการให้พูด</label>
+      <textarea
+        className="w-full p-3 mb-4 rounded bg-gray-800"
+        rows={4}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="พิมพ์ข้อความของคุณที่นี่..."
+      />
+
+      <button
+        className={`bg-yellow-400 text-black px-6 py-2 rounded hover:bg-yellow-300 disabled:opacity-50`}
+        onClick={handleGenerate}
+        disabled={isLoading || !text || !selectedModel}
+      >
+        {isLoading ? "กำลังสร้างเสียง..." : "สร้างเสียง"}
+      </button>
+
+      <p className="mt-4">{status}</p>
+
+      {audioUrl && (
+        <audio
+          className="mt-6 w-full"
+          controls
+          src={audioUrl}
+        />
+      )}
+
+      {audioUrl && (
+        <a
+          href={audioUrl}
+          download
+          className="inline-block mt-4 px-6 py-2 bg-green-500 rounded hover:bg-green-400"
+        >
+          ดาวน์โหลดไฟล์เสียง
+        </a>
+      )}
+    </div>
+  );
+}

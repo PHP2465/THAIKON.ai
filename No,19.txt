@@ -1,0 +1,62 @@
+// THAIKON.AI – Voice History Page
+// React + Supabase + TailwindCSS
+
+import React, { useEffect, useState } from "react";
+import { supabase } from "../supabaseClient";
+import { useAuth } from "../AuthContext";
+
+export default function VoiceHistory() {
+  const { user } = useAuth();
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      const { data, error } = await supabase
+        .from("generated_voices")
+        .select("id, created_at, text, audio_url, model_id, voice_models(name, type)")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (!error) setHistory(data);
+      setLoading(false);
+    };
+
+    fetchHistory();
+  }, [user.id]);
+
+  return (
+    <div className="min-h-screen bg-gray-950 text-white p-6">
+      <h1 className="text-3xl font-bold text-yellow-400 mb-6">ประวัติการสร้างเสียง</h1>
+
+      {loading ? (
+        <p>กำลังโหลดข้อมูล...</p>
+      ) : history.length === 0 ? (
+        <p>ยังไม่มีเสียงที่ถูกสร้าง</p>
+      ) : (
+        <div className="space-y-4">
+          {history.map((item) => (
+            <div key={item.id} className="bg-gray-800 p-4 rounded-xl">
+              <h2 className="text-xl font-semibold">
+                โมเดล: {item.voice_models?.name} ({item.voice_models?.type})
+              </h2>
+              <p className="text-sm text-gray-400">สร้างเมื่อ: {new Date(item.created_at).toLocaleString()}</p>
+              <p className="mt-2">ข้อความ: "{item.text}"</p>
+              <audio controls className="mt-2 w-full">
+                <source src={item.audio_url} type="audio/mpeg" />
+                เบราว์เซอร์ของคุณไม่รองรับการเล่นเสียง
+              </audio>
+              <a
+                href={item.audio_url}
+                download
+                className="inline-block mt-3 text-yellow-300 hover:underline"
+              >
+                ⬇ ดาวน์โหลดเสียงนี้
+              </a>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

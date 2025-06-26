@@ -1,0 +1,22 @@
+from fastapi import FastAPI
+from pydantic import BaseModel
+import torch
+import io
+from fastapi.responses import StreamingResponse
+
+app = FastAPI()
+
+class GenerateRequest(BaseModel):
+    model_url: str
+    text: str
+
+@app.post("/generate")
+async def generate(request: GenerateRequest):
+    # โหลดโมเดลจาก model_url (สมมติ)
+    # สร้างเสียงจาก text
+    # สำหรับตัวอย่าง mock เราจะส่งไฟล์ wav ที่เตรียมไว้
+
+    with open("sample.wav", "rb") as f:
+        audio_bytes = f.read()
+
+    return StreamingResponse(io.BytesIO(audio_bytes), media_type="audio/wav")

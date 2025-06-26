@@ -1,0 +1,103 @@
+// THAIKON.AI – Voice Generation Page
+// React + Supabase + TailwindCSS
+
+import React, { useEffect, useState } from "react";
+import { supabase } from "../supabaseClient";
+import { useAuth } from "../AuthContext";
+
+export default function GenerateVoice() {
+  const { user } = useAuth();
+  const [models, setModels] = useState([]);
+  const [text, setText] = useState("");
+  const [selectedModel, setSelectedModel] = useState(null);
+  const [generating, setGenerating] = useState(false);
+  const [outputUrl, setOutputUrl] = useState("");
+
+  useEffect(() => {
+    const fetchModels = async () => {
+      const { data, error } = await supabase
+        .from("voice_models")
+        .select("id, name, type")
+        .eq("user_id", user.id)
+        .eq("training_status", "done")
+        .order("created_at", { ascending: false });
+
+      if (!error) setModels(data);
+    };
+    fetchModels();
+  }, [user.id]);
+
+  const handleGenerate = async () => {
+    if (!selectedModel || !text) return;
+    setGenerating(true);
+    setOutputUrl("");
+
+    try {
+      const response = await fetch("https://api.example-ai.com/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model_id: selectedModel,
+          text,
+        }),
+      });
+
+      const result = await response.json();
+      setOutputUrl(result.audio_url);
+    } catch (error) {
+      console.error("Error generating voice:", error);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-950 text-white p-6">
+      <h1 className="text-3xl font-bold text-yellow-400 mb-6">Generate Voice</h1>
+
+      <div className="bg-gray-800 p-6 rounded-xl mb-6">
+        <label className="block mb-2 text-lg">เลือกโมเดลเสียง:</label>
+        <select
+          className="w-full p-3 mb-4 bg-gray-900 rounded"
+          value={selectedModel || ""}
+          onChange={(e) => setSelectedModel(e.target.value)}
+        >
+          <option value="">-- เลือกโมเดล --</option>
+          {models.map((model) => (
+            <option key={model.id} value={model.id}>
+              {model.name} ({model.type})
+            </option>
+          ))}
+        </select>
+
+        <label className="block mb-2 text-lg">ข้อความที่ต้องการให้พูด:</label>
+        <textarea
+          className="w-full p-3 mb-4 bg-gray-900 rounded"
+          rows="4"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+        ></textarea>
+
+        <button
+          className="bg-yellow-400 text-black px-6 py-2 rounded hover:bg-yellow-300"
+          onClick={handleGenerate}
+          disabled={!text || !selectedModel || generating}
+        >
+          {generating ? "กำลังสร้างเสียง..." : "สร้างเสียงจากโมเดล"}
+        </button>
+
+        {outputUrl && (
+          <div className="mt-6">
+            <p className="text-green-400">✅ เสียงสร้างเสร็จแล้ว:</p>
+            <audio controls className="mt-2 w-full">
+              <source src={outputUrl} type="audio/mpeg" />
+              เบราว์เซอร์ของคุณไม่รองรับการเล่นเสียง
+            </audio>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

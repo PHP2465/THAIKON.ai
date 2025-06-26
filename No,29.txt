@@ -1,0 +1,47 @@
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "./AuthContext";
+import AuthPage from "./AuthPage";
+import Dashboard from "./Dashboard";
+import Studio from "./Studio";
+import Train from "./Train";
+import ProtectedRoute from "./ProtectedRoute";
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route path="/login" element={<AuthPage />} />
+
+          {/* หน้า Protected ทั้งหลาย! */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/studio"
+            element={
+              <ProtectedRoute>
+                <Studio />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/train"
+            element={
+              <ProtectedRoute>
+                <Train />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* หน้าอื่น ๆ ที่ไม่ต้อง login ก็ใส่ตรง ๆ ได้ */}
+        </Routes>
+      </Router>
+    </AuthProvider>
+  );
+}

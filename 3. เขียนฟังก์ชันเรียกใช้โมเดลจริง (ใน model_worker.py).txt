@@ -1,0 +1,18 @@
+import os
+from RVC.inference import infer_tool, infer
+
+def train_voice_model_real(input_wav_path, user_model_dir):
+    # ตัวอย่างโค้ดรันเทรน RVC (สมมติ user_model_dir เป็นที่เก็บโมเดลของ user)
+    # ต้องเรียกใช้งาน script training ของ RVC ที่ติดตั้งไว้
+    # อันนี้เป็น pseudocode นะ ต้องปรับตามโมเดลจริง
+    os.system(f"python train.py --input_wav {input_wav_path} --output_dir {user_model_dir}")
+    # หลังเทรนเสร็จจะได้ไฟล์โมเดล เช่น model.pth
+    return os.path.join(user_model_dir, "model.pth")
+
+def generate_voice_real(model_path, input_text_or_wav):
+    # เรียกฟังก์ชัน generate เสียงจากโมเดลจริง
+    # ตัวอย่าง pseudocode
+    infer_tool.setup_infer_tool()
+    infer.inference(model_path, input_text_or_wav)
+    output_wav_path = "output/generated.wav"
+    return output_wav_path

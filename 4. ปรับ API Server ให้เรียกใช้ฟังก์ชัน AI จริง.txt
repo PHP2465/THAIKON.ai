@@ -1,0 +1,13 @@
+from model_worker import train_voice_model_real, generate_voice_real
+
+@app.post("/train")
+def train_voice(data: TrainRequest):
+    trained_model_path = train_voice_model_real(data.filename, f"./models/{data.user_id}")
+    # อัปโหลดไฟล์โมเดล หรือไฟล์เสียงที่ generate กลับ storage
+    # และอัปเดต DB ตามเดิม
+    ...
+
+@app.post("/generate")
+def generate(data: GenerateRequest):
+    output_wav = generate_voice_real(f"./models/{data.user_id}/model.pth", data.input)
+    ...

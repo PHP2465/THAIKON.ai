@@ -1,0 +1,8 @@
+-- Table: voice_uploads
+create table voice_uploads (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users on delete cascade,
+  filename text,
+  file_url text,
+  created_at timestamp default now()
+);

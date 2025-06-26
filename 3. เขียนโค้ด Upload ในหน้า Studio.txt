@@ -1,0 +1,65 @@
+// pages/studio.jsx
+import { useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
+import { v4 as uuidv4 } from "uuid";
+
+export default function Studio() {
+  const [file, setFile] = useState(null);
+  const [message, setMessage] = useState("");
+
+  const handleUpload = async () => {
+    if (!file) return;
+
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${uuidv4()}.${fileExt}`;
+    const filePath = `voices/${fileName}`;
+
+    const { data: { session } } = await supabase.auth.getSession();
+    const user_id = session?.user?.id;
+
+    // Upload ไปยัง Supabase Storage
+    const { error: uploadError } = await supabase.storage
+      .from("user-voices")
+      .upload(filePath, file);
+
+    if (uploadError) {
+      setMessage("❌ อัปโหลดไม่สำเร็จ");
+      return;
+    }
+
+    // Get public URL
+    const { data: publicUrlData } = supabase.storage
+      .from("user-voices")
+      .getPublicUrl(filePath);
+
+    // บันทึกลง DB
+    const { error: dbError } = await supabase
+      .from("voice_uploads")
+      .insert([{ user_id, filename: file.name, file_url: publicUrlData.publicUrl }]);
+
+    if (dbError) {
+      setMessage("❌ บันทึกลงฐานข้อมูลล้มเหลว");
+    } else {
+      setMessage("✅ อัปโหลดเรียบร้อย!");
+    }
+  };
+
+  return (
+    <div className="p-6 text-white bg-gray-950 min-h-screen">
+      <h1 className="text-3xl font-bold mb-6">Studio – อัปโหลดเสียง</h1>
+      <input
+        type="file"
+        accept="audio/*"
+        onChange={(e) => setFile(e.target.files[0])}
+        className="p-3 rounded bg-gray-800 text-white mb-4"
+      />
+      <button
+        onClick={handleUpload}
+        className="bg-yellow-400 text-black px-6 py-2 rounded hover:bg-yellow-300"
+      >
+        อัปโหลดไฟล์
+      </button>
+      <p className="mt-4">{message}</p>
+    </div>
+  );
+}

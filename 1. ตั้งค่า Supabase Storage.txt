@@ -1,0 +1,4 @@
+✅ 1. ตั้งค่า Supabase Storage
+ไปที่ [Supabase Project → Storage → Create Bucket]
+ตั้งชื่อ bucket ว่า user-voices
+✅ เปิด Public (หรือใช้ RLS ถ้าต้องการ private)

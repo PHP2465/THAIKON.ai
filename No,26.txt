@@ -1,0 +1,70 @@
+import React, { useState } from 'react';
+import { supabase } from './supabaseClient';
+
+export default function AuthPage() {
+  const [isRegister, setIsRegister] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage('');
+
+    if (isRegister) {
+      // Register
+      const { error } = await supabase.auth.signUp({ email, password });
+      if (error) setMessage(error.message);
+      else setMessage('สมัครสมาชิกสำเร็จ! โปรดตรวจสอบอีเมลเพื่อยืนยัน');
+    } else {
+      // Login
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) setMessage(error.message);
+      else setMessage('เข้าสู่ระบบสำเร็จ!');
+    }
+
+    setLoading(false);
+  };
+
+  return (
+    <div className="max-w-md mx-auto mt-20 p-6 bg-gray-900 text-white rounded-lg shadow-lg">
+      <h2 className="text-2xl font-bold mb-6 text-yellow-400">
+        {isRegister ? 'สมัครสมาชิก' : 'เข้าสู่ระบบ'}
+      </h2>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <input
+          type="email"
+          placeholder="อีเมล"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          className="w-full p-3 rounded bg-gray-800 text-white"
+        />
+        <input
+          type="password"
+          placeholder="รหัสผ่าน"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          className="w-full p-3 rounded bg-gray-800 text-white"
+        />
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-yellow-400 hover:bg-yellow-300 text-black py-3 rounded font-semibold"
+        >
+          {loading ? 'กำลังดำเนินการ...' : isRegister ? 'สมัครสมาชิก' : 'เข้าสู่ระบบ'}
+        </button>
+      </form>
+      <p className="mt-4 text-center text-gray-400 cursor-pointer" onClick={() => {
+        setMessage('');
+        setIsRegister(!isRegister);
+      }}>
+        {isRegister ? 'มีบัญชีอยู่แล้ว? เข้าสู่ระบบ' : 'ยังไม่มีบัญชี? สมัครสมาชิก'}
+      </p>
+      {message && <p className="mt-4 text-center text-red-400">{message}</p>}
+    </div>
+  );
+}

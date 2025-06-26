@@ -1,0 +1,11 @@
+// /api/generateVoice.js
+export default async function handler(req, res) {
+  if (req.method !== "POST") return res.status(405).end();
+
+  const { model_id, text } = req.body;
+
+  // จำลองเสียงจากโมเดล (mock เสียงจริง)
+  const fakeAudioURL = "https://example.com/audio/generated_voice.mp3";
+
+  return res.status(200).json({ audio_url: fakeAudioURL });
+}

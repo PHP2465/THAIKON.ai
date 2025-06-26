@@ -1,0 +1,137 @@
+// THAIKON.Ai Prototype – Harmony Tool Page (แยกเสียง / สร้างเสียงประสาน)
+// Stack: React + TailwindCSS + Supabase Credit System
+
+import React, { useState, useEffect } from "react";
+import { supabase } from "../utils/supabaseClient";
+
+export default function HarmonyTool() {
+  const [file, setFile] = useState(null);
+  const [processing, setProcessing] = useState(false);
+  const [done, setDone] = useState(false);
+  const [userCredits, setUserCredits] = useState(0);
+  const [isLoadingCredits, setIsLoadingCredits] = useState(true);
+
+  useEffect(() => {
+    const fetchCredits = async () => {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session?.user) return;
+      const userId = session.user.id;
+      const { data, error } = await supabase
+        .from("user_plans")
+        .select("credits_remaining")
+        .eq("user_id", userId)
+        .single();
+
+      if (!error && data) {
+        setUserCredits(data.credits_remaining);
+      }
+      setIsLoadingCredits(false);
+    };
+    fetchCredits();
+  }, []);
+
+  const handleProcess = async () => {
+    if (!file || userCredits <= 0) return;
+    setProcessing(true);
+
+    // Mock API call + deduct credit
+    setTimeout(async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session.user.id;
+
+      // Update credit
+      await supabase
+        .rpc("deduct_credit", { user_id_input: userId, amount: 1 });
+
+      setUserCredits((prev) => prev - 1);
+      setProcessing(false);
+      setDone(true);
+    }, 3000);
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-950 text-white p-6">
+      <header className="flex items-center justify-between mb-10">
+        <h1 className="text-3xl font-bold text-yellow-400">Harmony Tool</h1>
+        <button className="bg-yellow-400 text-black px-6 py-2 rounded-full hover:bg-yellow-300">
+          กลับแดชบอร์ด
+        </button>
+      </header>
+
+      <section className="bg-gray-800 p-6 rounded-xl mb-8">
+        <h2 className="text-xl font-semibold mb-4">อัปโหลดเพลงเพื่อแยกเสียงร้องและเครื่องดนตรี</h2>
+        {isLoadingCredits ? (
+          <p>กำลังโหลดเครดิตของคุณ...</p>
+        ) : (
+          <p className="mb-4 text-green-400">🎫 เครดิตคงเหลือ: {userCredits}</p>
+        )}
+
+        <input
+          type="file"
+          accept="audio/*"
+          onChange={(e) => setFile(e.target.files[0])}
+          className="w-full p-3 bg-gray-900 rounded mb-4"
+        />
+        <button
+          className="bg-yellow-400 text-black px-6 py-2 rounded hover:bg-yellow-300"
+          onClick={handleProcess}
+          disabled={!file || processing || userCredits <= 0}
+        >
+          {processing ? "กำลังประมวลผล..." : "แยกเสียง / สร้าง Harmony"}
+        </button>
+        {userCredits <= 0 && (
+          <p className="text-red-400 mt-2">❌ เครดิตไม่เพียงพอ กรุณาซื้อแพ็กเกจ</p>
+        )}
+        {done && (
+          <p className="text-green-400 mt-4">
+            ✅ เสร็จเรียบร้อย! คุณสามารถดาวน์โหลดเสียงร้องและเสียงดนตรีแยกได้แล้ว
+          </p>
+        )}
+      </section>
+
+      <section className="bg-gray-800 p-6 rounded-xl">
+        <h2 className="text-xl font-semibold mb-4">เอฟเฟกต์เสียงเพิ่มเติม (Experimental)</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {["Remove Echo", "Enhance Vocal", "Speed Remix", "Pitch Shift"].map((fx, i) => (
+            <button
+              key={i}
+              className="bg-gray-700 hover:bg-yellow-400 hover:text-black p-4 rounded shadow"
+            >
+              {fx}
+            </button>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+// ✅ Database Schema: แพ็กเกจเสียง (Supabase Tables)
+/*
+  TABLE: plans
+  - id (uuid, primary key)
+  - name (text)
+  - price (integer)
+  - credits (integer)
+  - model_limit (integer)
+  - is_active (boolean)
+
+  TABLE: user_plans
+  - id (uuid, primary key)
+  - user_id (uuid, references auth.users)
+  - plan_id (uuid, references plans)
+  - credits_remaining (integer)
+  - created_at (timestamp)
+  - expires_at (timestamp)
+
+  FUNCTION: deduct_credit(user_id_input uuid, amount int)
+  - SQL stored procedure to subtract credit from user_plans
+
+  TABLE: payments
+  - id (uuid, primary key)
+  - user_id (uuid)
+  - amount (integer)
+  - status (text)
+  - method (text)
+  - created_at (timestamp)
+*/

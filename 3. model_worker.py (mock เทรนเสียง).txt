@@ -1,0 +1,11 @@
+import time
+
+def train_voice_model(filename):
+    print(f"Training model from: {filename}")
+    time.sleep(5)  # mock processing
+    return f"{filename}_trained.wav"
+
+def generate_voice(model_name):
+    print(f"Generating voice using: {model_name}")
+    time.sleep(3)  # mock generation
+    return f"{model_name}_generated.wav"

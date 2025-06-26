@@ -1,0 +1,5 @@
+ai-server/
+├── main.py
+├── supabase_client.py
+├── model_worker.py
+└── requirements.txt

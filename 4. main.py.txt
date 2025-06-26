@@ -1,0 +1,47 @@
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from supabase_client import supabase
+from model_worker import train_voice_model, generate_voice
+
+app = FastAPI()
+
+class TrainRequest(BaseModel):
+    filename: str
+    user_id: str
+
+class GenerateRequest(BaseModel):
+    model_name: str
+    user_id: str
+
+@app.post("/train")
+def train_voice(data: TrainRequest):
+    # Step 1: ดึงไฟล์จาก Supabase Storage (mock)
+    audio_file = data.filename
+
+    # Step 2: ประมวลผลเทรน (mock)
+    output_file = train_voice_model(audio_file)
+
+    # Step 3: Upload กลับ (mock URL)
+    file_url = f"https://your-bucket.supabase.co/storage/v1/object/public/voices/{output_file}"
+
+    # Step 4: อัปเดต DB
+    supabase.table("voice_history").insert({
+        "user_id": data.user_id,
+        "filename": output_file,
+        "file_url": file_url
+    }).execute()
+
+    return {"status": "success", "file_url": file_url}
+
+@app.post("/generate")
+def generate(data: GenerateRequest):
+    output_file = generate_voice(data.model_name)
+    file_url = f"https://your-bucket.supabase.co/storage/v1/object/public/voices/{output_file}"
+
+    supabase.table("voice_history").insert({
+        "user_id": data.user_id,
+        "filename": output_file,
+        "file_url": file_url
+    }).execute()
+
+    return {"status": "success", "file_url": file_url}

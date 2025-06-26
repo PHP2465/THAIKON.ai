@@ -1,0 +1,12 @@
+POST /generate
+{
+  "model_name": "sam_model",
+  "user_id": "uuid-user-001"
+}
+
+
+POST /train
+{
+  "filename": "sam_voice.wav",
+  "user_id": "uuid-user-001"
+}

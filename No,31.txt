@@ -1,0 +1,9 @@
+-- เปิด RLS
+alter table voice_models enable row level security;
+alter table training_sessions enable row level security;
+alter table audio_history enable row level security;
+
+-- ตัวอย่าง policy
+create policy "Users can access their own models"
+on voice_models
+for select using (auth.uid() = user_id);

@@ -1,0 +1,61 @@
+// THAIKON.AI – Training Monitor Page
+// React + Supabase + TailwindCSS
+
+import React, { useEffect, useState } from "react";
+import { supabase } from "../supabaseClient";
+import { useAuth } from "../AuthContext";
+
+export default function TrainingMonitor() {
+  const { user } = useAuth();
+  const [sessions, setSessions] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch training sessions every 5 seconds
+  useEffect(() => {
+    let interval;
+    const fetchSessions = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("training_sessions")
+        .select("id, status, logs, created_at, model_id, voice_models(name, type)")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Error fetching training sessions:", error);
+      } else {
+        setSessions(data);
+      }
+      setLoading(false);
+    };
+
+    fetchSessions();
+    interval = setInterval(fetchSessions, 5000);
+    return () => clearInterval(interval);
+  }, [user.id]);
+
+  return (
+    <div className="min-h-screen bg-gray-950 text-white p-6">
+      <h1 className="text-3xl font-bold text-yellow-400 mb-6">Training Monitor</h1>
+
+      {loading ? (
+        <p>กำลังโหลดข้อมูล...</p>
+      ) : sessions.length === 0 ? (
+        <p>ไม่มีงานเทรนเสียงในระบบ</p>
+      ) : (
+        <div className="space-y-4">
+          {sessions.map((session) => (
+            <div key={session.id} className="bg-gray-800 p-4 rounded-lg">
+              <h2 className="text-xl font-semibold">
+                โมเดล: {session.voice_models?.name || "ไม่ระบุชื่อ"} ({session.voice_models?.type || "-"})
+              </h2>
+              <p>สถานะ: <span className="font-mono">{session.status}</span></p>
+              <p>เริ่มเมื่อ: {new Date(session.created_at).toLocaleString()}</p>
+              <pre className="bg-gray-900 p-2 mt-2 rounded text-sm whitespace-pre-wrap">{session.logs}</pre>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

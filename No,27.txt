@@ -1,0 +1,14 @@
+import React from 'react';
+import { AuthProvider } from './AuthContext';
+import AuthPage from './AuthPage';
+import Dashboard from './Dashboard'; // ตัวอย่างหน้าหลังล็อกอิน
+
+export default function App() {
+  return (
+    <AuthProvider>
+      {/* ตัวอย่างง่าย ๆ แสดงหน้า Login หรือ Dashboard */}
+      <AuthPage />
+      {/* TODO: เพิ่มระบบ Routing, ProtectedRoute ต่อไป */}
+    </AuthProvider>
+  );
+}

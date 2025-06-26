@@ -1,0 +1,70 @@
+// THAIKON.AI – Main App Routing
+// React + React Router DOM + TailwindCSS
+
+import React from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import HarmonyTool from "./HarmonyTool";
+import GenerateVoice from "./GenerateVoice";
+import VoiceHistory from "./VoiceHistory";
+import TrainingMonitor from "./TrainingMonitor";
+import LoginPage from "./LoginPage";
+import RegisterPage from "./RegisterPage";
+import Dashboard from "./Dashboard";
+import Studio from "./Studio";
+import VoiceDesigner from "./VoiceDesigner";
+import VoiceClone from "./VoiceClone";
+import HomePage from "./LandingPage";
+import { AuthProvider } from "./AuthContext";
+import ProtectedRoute from "./ProtectedRoute";
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <Router>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+
+          {/* Protected Routes */}
+          <Route
+            path="/dashboard"
+            element={<ProtectedRoute><Dashboard /></ProtectedRoute>}
+          />
+          <Route
+            path="/studio"
+            element={<ProtectedRoute><Studio /></ProtectedRoute>}
+          />
+          <Route
+            path="/designer"
+            element={<ProtectedRoute><VoiceDesigner /></ProtectedRoute>}
+          />
+          <Route
+            path="/clone"
+            element={<ProtectedRoute><VoiceClone /></ProtectedRoute>}
+          />
+          <Route
+            path="/harmony"
+            element={<ProtectedRoute><HarmonyTool /></ProtectedRoute>}
+          />
+          <Route
+            path="/monitor"
+            element={<ProtectedRoute><TrainingMonitor /></ProtectedRoute>}
+          />
+          <Route
+            path="/generate"
+            element={<ProtectedRoute><GenerateVoice /></ProtectedRoute>}
+          />
+          <Route
+            path="/history"
+            element={<ProtectedRoute><VoiceHistory /></ProtectedRoute>}
+          />
+
+          {/* Fallback Route */}
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
+  );
+}

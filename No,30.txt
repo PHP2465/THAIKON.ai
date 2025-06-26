@@ -1,0 +1,48 @@
+-- ตารางผู้ใช้ (จะใช้ auth.users ของ Supabase โดยตรงก็ได้ แต่เราสร้างเพิ่มเพื่อเก็บโปรไฟล์)
+create table users (
+  id uuid primary key default uuid_generate_v4(),
+  auth_user_id uuid references auth.users(id) on delete cascade,
+  display_name text,
+  email text unique,
+  created_at timestamp default now()
+);
+
+-- ตารางโมเดลเสียง
+create table voice_models (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid references users(id) on delete cascade,
+  name text not null,
+  description text,
+  language text default 'thai',
+  category text, -- เช่น male/female/rapper/หมอลำ
+  model_url text, -- ลิงก์ไปยังไฟล์โมเดล (เช่น .onnx หรือ .pth)
+  created_at timestamp default now()
+);
+
+-- ตารางการฝึกเสียง
+create table training_sessions (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid references users(id) on delete cascade,
+  voice_model_id uuid references voice_models(id) on delete cascade,
+  status text check (status in ('pending', 'processing', 'completed', 'failed')) default 'pending',
+  started_at timestamp default now(),
+  completed_at timestamp
+);
+
+-- ตารางไฟล์เสียงที่ generate หรือ upload
+create table audio_history (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid references users(id) on delete cascade,
+  voice_model_id uuid references voice_models(id) on delete set null,
+  file_url text not null,
+  action_type text check (action_type in ('generate', 'upload', 'train_sample')),
+  created_at timestamp default now()
+);
+
+-- ตาราง feedback (optional)
+create table feedback (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid references users(id) on delete cascade,
+  message text,
+  created_at timestamp default now()
+);

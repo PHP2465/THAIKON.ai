@@ -1,0 +1,121 @@
+// THAIKON.AI – Studio Page (Training Workflow ต่อจาก Upload)
+// Stack: React + Supabase + TailwindCSS
+
+import React, { useEffect, useState } from "react";
+import { supabase } from "../supabaseClient";
+import { useAuth } from "../AuthContext";
+
+export default function Studio() {
+  const { user } = useAuth();
+  const [file, setFile] = useState(null);
+  const [modelName, setModelName] = useState("");
+  const [voiceType, setVoiceType] = useState("male_singer");
+  const [uploading, setUploading] = useState(false);
+  const [message, setMessage] = useState("");
+
+  const handleUpload = async () => {
+    if (!file || !modelName) return;
+    setUploading(true);
+    setMessage("");
+
+    const filename = `${user.id}/${Date.now()}_${file.name}`;
+    const { data: storageData, error: storageError } = await supabase.storage
+      .from("voice-data")
+      .upload(filename, file);
+
+    if (storageError) {
+      setMessage("❌ Upload failed: " + storageError.message);
+      setUploading(false);
+      return;
+    }
+
+    const fileUrl = supabase.storage.from("voice-data").getPublicUrl(filename).data.publicUrl;
+
+    // 1. Insert into voice_models
+    const { data: modelData, error: insertError } = await supabase.from("voice_models").insert([
+      {
+        user_id: user.id,
+        name: modelName,
+        type: voiceType,
+        model_url: fileUrl,
+        training_status: "queued",
+      },
+    ]).select("id").single();
+
+    if (insertError) {
+      setMessage("❌ DB insert failed: " + insertError.message);
+      setUploading(false);
+      return;
+    }
+
+    // 2. Create training session (simulate queue)
+    const { error: trainingError } = await supabase.from("training_sessions").insert([
+      {
+        user_id: user.id,
+        model_id: modelData.id,
+        data_url: fileUrl,
+        status: "queued",
+        logs: "กำลังจัดคิวเพื่อเทรนเสียง..."
+      }
+    ]);
+
+    if (trainingError) {
+      setMessage("✅ อัปโหลดเสร็จ แต่ training session มีปัญหา: " + trainingError.message);
+    } else {
+      setMessage("✅ โมเดลพร้อมเทรนแล้ว ระบบจะทำงานอัตโนมัติ");
+    }
+
+    setUploading(false);
+    setModelName("");
+    setFile(null);
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-950 text-white p-6">
+      <h1 className="text-3xl font-bold text-yellow-400 mb-6">Studio – สร้างโมเดลเสียง</h1>
+
+      <div className="bg-gray-800 p-6 rounded-xl mb-6">
+        <label className="block text-lg mb-2">ชื่อโมเดลเสียง:</label>
+        <input
+          type="text"
+          value={modelName}
+          onChange={(e) => setModelName(e.target.value)}
+          className="w-full p-3 mb-4 bg-gray-900 rounded"
+        />
+
+        <label className="block text-lg mb-2">ประเภทเสียง:</label>
+        <select
+          value={voiceType}
+          onChange={(e) => setVoiceType(e.target.value)}
+          className="w-full p-3 mb-4 bg-gray-900 rounded"
+        >
+          <option value="male_singer">นักร้องชาย</option>
+          <option value="female_singer">นักร้องหญิง</option>
+          <option value="rapper_male">แรปเปอร์ชาย</option>
+          <option value="rapper_female">แรปเปอร์หญิง</option>
+          <option value="announcer">พิธีกร</option>
+          <option value="isaan_lukthung">ลูกทุ่งอีสาน</option>
+          <option value="isaan_morlum">หมอลำ</option>
+        </select>
+
+        <label className="block text-lg mb-2">อัปโหลดไฟล์เสียง:</label>
+        <input
+          type="file"
+          accept="audio/*"
+          onChange={(e) => setFile(e.target.files[0])}
+          className="w-full p-3 mb-4 bg-gray-900 rounded"
+        />
+
+        <button
+          className="bg-yellow-400 text-black px-6 py-2 rounded hover:bg-yellow-300"
+          onClick={handleUpload}
+          disabled={uploading || !file || !modelName}
+        >
+          {uploading ? "กำลังอัปโหลด..." : "อัปโหลด + เทรนโมเดล"}
+        </button>
+
+        {message && <p className="mt-4 text-green-400">{message}</p>}
+      </div>
+    </div>
+  );
+}

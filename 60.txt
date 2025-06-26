@@ -1,0 +1,84 @@
+// pages/PlansPage.tsx
+
+import React from "react";
+
+const plans = [
+  {
+    name: "Free Plan",
+    price: "฿0",
+    features: [
+      "เทรนเสียง 1 voice",
+      "Generate 10 ครั้ง/วัน",
+      "ความเร็วปกติ",
+      "มี Watermark",
+    ],
+    button: "ใช้แผนนี้",
+  },
+  {
+    name: "Creator",
+    price: "฿199 / เดือน",
+    features: [
+      "เทรนเสียงได้ 3 voices",
+      "Generate 300 ครั้ง/เดือน",
+      "ความเร็วสูง",
+      "ไม่มี Watermark",
+    ],
+    button: "อัปเกรด",
+  },
+  {
+    name: "Studio",
+    price: "฿999 / เดือน",
+    features: [
+      "เทรนเสียงได้ 10 voices",
+      "Generate 2,000 ครั้ง/เดือน",
+      "ความเร็วสูงสุด",
+      "ไม่มี Watermark",
+      "Priority Support",
+    ],
+    button: "สมัครเลย",
+  },
+  {
+    name: "Enterprise",
+    price: "ติดต่อเรา",
+    features: [
+      "เสียงไม่จำกัด",
+      "การเข้าถึง API",
+      "Dedicated Server",
+      "ทีมงานดูแล",
+    ],
+    button: "ติดต่อทีมงาน",
+  },
+];
+
+export default function PlansPage() {
+  return (
+    <div className="min-h-screen bg-gray-950 text-white p-6">
+      <h1 className="text-3xl font-bold text-yellow-400 mb-6">
+        เลือกแพ็กเกจเสียงของคุณ
+      </h1>
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {plans.map((plan, i) => (
+          <div
+            key={i}
+            className="bg-gray-800 p-6 rounded-xl flex flex-col justify-between shadow hover:scale-105 transition"
+          >
+            <div>
+              <h2 className="text-xl font-semibold text-yellow-300">
+                {plan.name}
+              </h2>
+              <p className="text-2xl font-bold my-2">{plan.price}</p>
+              <ul className="text-sm space-y-2 mb-4">
+                {plan.features.map((f, idx) => (
+                  <li key={idx}>✅ {f}</li>
+                ))}
+              </ul>
+            </div>
+            <button className="bg-yellow-400 text-black py-2 px-4 rounded hover:bg-yellow-300">
+              {plan.button}
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

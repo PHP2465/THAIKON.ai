@@ -1,0 +1,42 @@
+// api/generateVoiceReal.js (Node.js backend example)
+import axios from "axios";
+import { supabase } from "../supabaseClient";
+
+export default async function handler(req, res) {
+  if (req.method !== "POST") return res.status(405).end();
+
+  const { model_url, text, user_id } = req.body;
+
+  try {
+    // เรียก Python AI Server (สมมติว่าอยู่ที่ localhost:8000/generate)
+    const response = await axios.post("http://localhost:8000/generate", {
+      model_url,
+      text,
+    }, {
+      responseType: "arraybuffer", // รับเป็นไฟล์เสียง binary
+    });
+
+    const audioBuffer = response.data;
+
+    // อัปโหลดไฟล์เสียงไป Supabase Storage
+    const filename = `generated/${user_id}/${Date.now()}.wav`;
+    const { error: uploadError } = await supabase.storage
+      .from("user-audio")
+      .upload(filename, Buffer.from(audioBuffer), {
+        contentType: "audio/wav",
+      });
+
+    if (uploadError) throw uploadError;
+
+    const { publicUrl, error: urlError } = supabase.storage
+      .from("user-audio")
+      .getPublicUrl(filename);
+
+    if (urlError) throw urlError;
+
+    return res.status(200).json({ audio_url: publicUrl });
+  } catch (error) {
+    console.error("Generate voice error:", error);
+    return res.status(500).json({ error: "Generate voice failed." });
+  }
+}

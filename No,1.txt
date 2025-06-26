@@ -1,0 +1,63 @@
+// THAIKON.Ai Prototype – Training Monitor (ติดตามสถานะการเทรนโมเดล)
+// Stack: React + Supabase
+
+import React, { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
+
+export default function TrainingMonitor() {
+  const [sessions, setSessions] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchSessions = async () => {
+      setLoading(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      const user_id = session?.user?.id;
+
+      const { data, error } = await supabase
+        .from("training_sessions")
+        .select("id, status, created_at")
+        .eq("user_id", user_id)
+        .order("created_at", { ascending: false });
+
+      if (!error) {
+        setSessions(data);
+      }
+      setLoading(false);
+    };
+
+    fetchSessions();
+    const interval = setInterval(fetchSessions, 5000); // Refresh ทุก 5 วิ
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-gray-950 text-white p-6">
+      <h1 className="text-3xl font-bold text-yellow-400 mb-6">Training Monitor</h1>
+      <p className="mb-4">สถานะการเทรนเสียงของคุณ (อัปเดตอัตโนมัติทุก 5 วินาที)</p>
+
+      {loading ? (
+        <p className="text-gray-400">⏳ กำลังโหลด...</p>
+      ) : (
+        <ul className="space-y-3">
+          {sessions.map((s) => (
+            <li
+              key={s.id}
+              className={`p-4 rounded-xl bg-gray-800 border-l-4 ${
+                s.status === "done"
+                  ? "border-green-400"
+                  : s.status === "processing"
+                  ? "border-yellow-400"
+                  : "border-gray-500"
+              }`}
+            >
+              <p className="text-sm text-gray-400">Session ID: {s.id}</p>
+              <p className="font-semibold text-lg">สถานะ: {s.status}</p>
+              <p className="text-sm text-gray-500">สร้างเมื่อ: {new Date(s.created_at).toLocaleString()}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}

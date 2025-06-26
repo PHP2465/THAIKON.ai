@@ -1,0 +1,6 @@
+ สิ่งที่พี่ต้องเตรียม
+AI Model Server (Python หรืออื่นๆ) รันพร้อม API รับข้อความและโมเดล
+
+Supabase Storage หรือ S3 สำหรับเก็บไฟล์เสียง
+
+ปรับแต่งระบบ Authentication ให้รองรับ user_id

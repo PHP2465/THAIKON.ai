@@ -1,0 +1,12 @@
+import ProtectedRoute from "./ProtectedRoute";
+
+export default function DashboardPage() {
+  return (
+    <ProtectedRoute>
+      <div className="text-white p-8">
+        <h1 className="text-2xl">📊 Dashboard</h1>
+        {/* เนื้อหาทั้งหมดของ Dashboard */}
+      </div>
+    </ProtectedRoute>
+  );
+}

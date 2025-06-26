@@ -1,0 +1,76 @@
+import { useEffect, useState } from "react";
+import { supabase } from "../supabaseClient";
+import { useAuth } from "../AuthContext";
+
+export default function History() {
+  const { user } = useAuth();
+  const [history, setHistory] = useState([]);
+
+  const fetchHistory = async () => {
+    const { data, error } = await supabase
+      .from("voice_history")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+
+    if (data) setHistory(data);
+  };
+
+  const deleteFile = async (item) => {
+    const { error: storageError } = await supabase.storage
+      .from("voices")
+      .remove([item.filename]);
+
+    const { error: dbError } = await supabase
+      .from("voice_history")
+      .delete()
+      .eq("id", item.id);
+
+    fetchHistory(); // refresh
+  };
+
+  useEffect(() => {
+    if (user) fetchHistory();
+  }, [user]);
+
+  return (
+    <div className="min-h-screen bg-gray-950 text-white p-6">
+      <h1 className="text-2xl font-bold mb-6">📜 ประวัติการสร้างเสียง</h1>
+      {history.length === 0 ? (
+        <p className="text-gray-400">ยังไม่มีประวัติการสร้างเสียง</p>
+      ) : (
+        <ul className="space-y-4">
+          {history.map((item) => (
+            <li
+              key={item.id}
+              className="bg-gray-800 p-4 rounded flex justify-between items-center"
+            >
+              <div>
+                <p className="font-semibold">{item.filename}</p>
+                <p className="text-sm text-gray-400">
+                  {new Date(item.created_at).toLocaleString()}
+                </p>
+              </div>
+              <div className="space-x-2">
+                <a
+                  href={item.file_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-yellow-400 text-black px-4 py-2 rounded hover:bg-yellow-300"
+                >
+                  ดาวน์โหลด
+                </a>
+                <button
+                  onClick={() => deleteFile(item)}
+                  className="bg-red-500 px-4 py-2 rounded hover:bg-red-400"
+                >
+                  ลบ
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}

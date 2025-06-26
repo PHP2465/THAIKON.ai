@@ -1,0 +1,7 @@
+Table: voice_history
+
+- id (uuid)
+- user_id (uuid)
+- filename (text)
+- file_url (text)
+- created_at (timestamp)

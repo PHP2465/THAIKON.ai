@@ -1,0 +1,75 @@
+// backend/worker/trainer.js
+// Node.js script for training voice models (run on server, cloud, or scheduled job)
+
+import { createClient } from "@supabase/supabase-js";
+import axios from "axios";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY // ต้องใช้ service role key
+);
+
+async function main() {
+  console.log("🔁 เริ่มตรวจสอบคิวเทรนโมเดล...");
+
+  const { data: sessions, error } = await supabase
+    .from("training_sessions")
+    .select("*")
+    .eq("status", "queued")
+    .limit(1);
+
+  if (error) throw error;
+  if (!sessions || sessions.length === 0) return console.log("✅ ไม่มีคิวใหม่");
+
+  const session = sessions[0];
+  console.log("🎯 กำลังเทรน:", session.id);
+
+  // อัปเดตสถานะเป็น training
+  await supabase
+    .from("training_sessions")
+    .update({ status: "training", logs: "เริ่มเทรนโมเดล..." })
+    .eq("id", session.id);
+
+  try {
+    // ส่ง API ไปยังระบบ AI เทรนเสียง (Mock)
+    const response = await axios.post("https://api.example-ai.com/train", {
+      audio_url: session.data_url,
+      model_id: session.model_id,
+    });
+
+    const { model_output_url, logs } = response.data;
+
+    // บันทึกผลกลับเข้า Supabase
+    await supabase
+      .from("training_sessions")
+      .update({
+        status: "done",
+        logs: logs || "สำเร็จ!",
+      })
+      .eq("id", session.id);
+
+    await supabase
+      .from("voice_models")
+      .update({
+        training_status: "done",
+        output_url: model_output_url,
+      })
+      .eq("id", session.model_id);
+
+    console.log("✅ เทรนเสร็จเรียบร้อย:", session.model_id);
+  } catch (err) {
+    console.error("❌ เทรนล้มเหลว:", err.message);
+    await supabase
+      .from("training_sessions")
+      .update({
+        status: "error",
+        logs: `เกิดข้อผิดพลาด: ${err.message}`,
+      })
+      .eq("id", session.id);
+  }
+}
+
+main();

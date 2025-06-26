@@ -1,0 +1,24 @@
+const handleGenerate = async () => {
+  if (!selectedModel || !text) return alert("กรุณาเลือกโมเดลและกรอกข้อความ");
+
+  setProcessing(true);
+
+  // ดึง model_url จาก models list
+  const model = models.find((m) => m.id === selectedModel);
+
+  const response = await fetch("/api/generateVoiceReal", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model_url: model.model_url,
+      text,
+      user_id: user.id,
+    }),
+  });
+
+  const data = await response.json();
+  if (data.audio_url) setAudioUrl(data.audio_url);
+  else alert("เกิดข้อผิดพลาดในการสร้างเสียง");
+
+  setProcessing(false);
+};
